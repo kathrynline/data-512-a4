@@ -1,0 +1,115 @@
+library(ggplot2)
+library(data.table)
+
+setwd("~/Desktop/data-512-a4-data/prepped_data")
+
+#--------------------------------------------
+# Baking graphics 
+#--------------------------------------------
+
+consumer_prices <- fread("consumer_price_indices_2019_2020.csv", header = TRUE)
+
+# These global lists are used throughout the analysis. 
+BAKING_CATEGORIES = c('Eggs', 'Dairy products', 'Cereals and bakery products')
+AGGREGATE_CATEGORIES = c("All food", "Food away from home", "Food at home", 
+                         "Meats, poultry and fish", "Fruits and vegetables")
+
+# Plot 1 - how did baking products (dairy products and cereals and bakery products)
+# change in price from 2019 to 2020? 
+plot_data = copy(consumer_prices)
+plot_data = plot_data[, .(item, annual_2020_percent_change)]
+plot_data = melt(plot_data, id.vars = 'item', variable.name = 'year')
+plot_data[grepl("2020", year), year:="2020"]
+
+# Comparing change in category; highlighting baking categories 
+plot_data = copy(consumer_prices)
+plot_data = plot_data[, .(item, annual_2020_percent_change, historical_average)]
+
+plot_data[item %in% BAKING_CATEGORIES, is_baking_category:=TRUE]
+
+ggplot(plot_data, aes(x = item, y = annual_2020_percent_change, fill= is_baking_category)) + 
+  geom_bar(stat = 'identity') + 
+  theme_bw() + 
+  theme(legend.position = "none") + 
+  coord_flip() + 
+  labs(title = "Change in consumer price index from 2019 to 2020", subtitle = "Baking categories highlighted in red",
+       x = "Category", y = "Change in percentage points")
+
+ggsave("../pngs/change_in_cpi_baking_highlighted.png")
+
+
+# Show change versus historical average 
+plot_data[, hist_avg_diff:=annual_2020_percent_change-historical_average]
+
+ggplot(plot_data, aes(x = item, y = hist_avg_diff, fill= is_baking_category)) + 
+  geom_bar(stat = 'identity') + 
+  theme_bw() + 
+  theme(legend.position = "none") + 
+  coord_flip() + 
+  labs(title = "2020 Percentage point increase from historical average", subtitle = "Baking categories highlighted in red",
+       x = "Category", y = "Change in percentage points")
+
+ggsave("../pngs/change_from_historical_average.png")
+
+# How much did all baking categories change vs. all non-baking categories? 
+plot_data[, mean(change_from_2019_to_2020), by = 'is_baking_category']
+
+
+# Now look at historical pricing data, from 1974 to 2020. 
+consumer_prices <- fread("consumer_price_indices_1974_2020.csv", header = TRUE)
+
+# Make a time series plot of the data 
+plot_data = copy(consumer_prices)
+plot_data = plot_data[!item %in% AGGREGATE_CATEGORIES] 
+plot_data = melt(plot_data, id.vars = 'item', variable.name = 'year')
+plot_data[item %in% BAKING_CATEGORIES, is_baking_category:=TRUE]
+plot_data[is.na(is_baking_category), is_baking_category:=FALSE]
+
+# Collapse 
+plot_data$value <- as.numeric(plot_data$value) # Some NAs created for processed fruits and vegetables before 1998
+plot_data[, year:=paste0(year, "-01-01")]
+plot_data$year <- as.Date(plot_data$year)
+plot_data = plot_data[, .(value=sum(value, na.rm = TRUE)), by = c('year', 'is_baking_category')]
+
+ggplot(plot_data, aes(x = year, y = value, group = is_baking_category, color = is_baking_category)) + 
+  geom_line() + 
+  theme_bw() + 
+  labs(title = "Annual percentage change in select consumer price indices", x = "Year", y = "Annual percent change",
+       color = "Baking CPI")
+
+ggsave("../pngs/cpi_time_series.png")
+
+
+#---------------------------------------
+# Gardening 
+#---------------------------------------
+
+# Advance retail sales 
+advance_retail_sales = fread("advance_sales_garden_supply_retailers.csv")
+
+# First, make a general time series plot 
+plot_data = copy(advance_retail_sales)
+plot_data$date <- as.Date(plot_data$date)
+
+ggplot(plot_data, aes(x = date, y = advance_retail_sales)) + 
+  geom_line(color = "orange") + 
+  theme_bw() + 
+  scale_y_continuous(labels = scales::dollar) + 
+  labs(title = "Advance retail sales from building materials/garden supply stores, 1992 - 2021", 
+       x = "Year", y = "$ Sales")
+
+ggsave("../pngs/gardening_retail_sales_ts_1992_2021.png")
+
+# Now zoom in on 2019 - 2021
+ggplot(plot_data[date >= "2019-01-01" & date <= "2021-12-01"], aes(x = date, y = advance_retail_sales)) + 
+  geom_line(color = "orange") + 
+  theme_bw() + 
+  scale_y_continuous(labels = scales::dollar) + 
+  labs(title = "Advance retail sales from building materials/garden supply stores, 2019 - 2021", 
+       x = "Year", y = "$ Sales")
+
+ggsave("../pngs/gardening_retail_sales_ts_2019_2021.png")
+
+
+# TODO: Do covariance analysis with COVID-19 cases/deaths 
+

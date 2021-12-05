@@ -8,7 +8,7 @@ setwd("~/Desktop/data-512-a4-data")
 
 # BAKING DATASETS 
 #-------------------------------
-# Consumer price forecasts 
+# Consumer price forecasts - 2019 and 2020
 #-------------------------------
 dt <- read_excel("raw_data/CPIforecast.xlsx")
 dt <- data.table(dt)
@@ -25,7 +25,25 @@ dt <- dt[3:nrow(dt)]
 dt <- dt[!is.na(annual_2019_percent_change)]
 
 
-write.csv(dt, "prepped_data/consumer_price_indices.csv", row.names = F)
+write.csv(dt, "prepped_data/consumer_price_indices_2019_2020.csv", row.names = F)
+
+#-------------------------------
+# Historical consumer price forecasts 
+#-------------------------------
+dt <- read_excel("raw_data/historicalcpi.xlsx")
+dt <- data.table(dt)
+
+names(dt) <- as.character(dt[1, ])
+
+# Drop the first row after renaming 
+dt = dt[2:nrow(dt)]
+setnames(dt, 'Consumer Price Index item', 'item')
+
+# Drop any rows where 2019 is blank; these are either 
+# NA all the way across or have footnote data. 
+dt <- dt[`2019` != "NA"]
+
+write.csv(dt, "prepped_data/consumer_price_indices_1974_2020.csv", row.names = F)
 
 #-------------------------------
 # Producer price forecasts 
