@@ -107,3 +107,19 @@ write.csv(dt, 'prepped_data/monthly_shelter_intake.csv', row.names = F)
 # Shift by category 
 #--------------------------------------------------------------
 
+# COVID-19 DATASETS 
+#--------------------------------------------------------------
+# Confirmed cases 
+#--------------------------------------------------------------
+dt <- fread('raw_data/RAW_us_confirmed_cases.csv')
+
+# Drop unnecessary columns 
+dt = dt[, -c('Province_State', 'Admin2', 'UID', 'iso2', 'iso3', 
+             'code3', 'FIPS', 'Lat', 'Long_', 'Combined_Key')]
+
+# Reshape long 
+dt = melt(dt, id.vars = 'Country_Region', value.name = 'confirmed_cases', variable.name = 'date')
+stopifnot(nrow(dt[is.na(confirmed_cases)])==0) # Assert no NAs.
+dt = dt[, .(confirmed_cases = sum(confirmed_cases)), by = 'date']
+
+write.csv(dt, 'prepped_data/confirmed_cases.csv', row.names = F)

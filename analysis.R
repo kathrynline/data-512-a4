@@ -1,5 +1,6 @@
 library(ggplot2)
 library(data.table)
+library(stargazer)
 
 setwd("~/Desktop/data-512-a4-data/prepped_data")
 
@@ -110,6 +111,29 @@ ggplot(plot_data[date >= "2019-01-01" & date <= "2021-12-01"], aes(x = date, y =
 
 ggsave("../pngs/gardening_retail_sales_ts_2019_2021.png")
 
+# Covariance analysis with COVID-19 cases
+cases = fread('confirmed_cases.csv')
+cases$date <- as.Date(cases$date, "%m/%d/%y")
 
-# TODO: Do covariance analysis with COVID-19 cases/deaths 
+plot_data = merge(advance_retail_sales, cases, by = 'date')
+
+model = lm(advance_retail_sales ~ confirmed_cases, data = plot_data)
+summary(model) 
+
+stargazer(model, type = "html", out = "../pngs/model_fit.html")
+
+# Calculate covariance 
+# Super high!!
+cov(plot_data$advance_retail_sales, plot_data$confirmed_cases)
+
+# Show this relationship 
+ggplot(plot_data, aes(x = confirmed_cases, y = advance_retail_sales)) + 
+  geom_point() + 
+  stat_smooth(method = "lm") + 
+  theme_bw() + 
+  scale_y_continuous(labels = scales::dollar) + 
+  labs(title = "Relationship between US cases and advance sales of garden supplies", 
+       subtitle = "Data represent Feb. 2020 - Sep. 2021", x = "Confirmed cases", y = "Advance sales ($)") 
+
+ggsave("../pngs/covariance_cases_garden_retail_sales.png")
 
