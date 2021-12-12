@@ -120,7 +120,7 @@ plot_data = merge(advance_retail_sales, cases, by = 'date')
 model = lm(advance_retail_sales ~ confirmed_cases, data = plot_data)
 summary(model) 
 
-stargazer(model, type = "html", out = "../pngs/model_fit.html")
+stargazer(model, type = "html", out = "../pngs/model_fit_gardening.html")
 
 # Calculate covariance 
 # Super high!!
@@ -137,3 +137,63 @@ ggplot(plot_data, aes(x = confirmed_cases, y = advance_retail_sales)) +
 
 ggsave("../pngs/covariance_cases_garden_retail_sales.png")
 
+
+#---------------------------------------
+# Animal adoptions
+#---------------------------------------
+
+monthly_shelter_intake = fread('monthly_shelter_intake.csv')
+
+plot_data = copy(monthly_shelter_intake) 
+plot_data[, month:=tstrsplit(month, " ", keep = 1)]
+plot_data[, date:=paste0(month, " 01, ", year)]
+
+plot_data$date <- as.Date(plot_data$date, format = "%b %d, %Y")
+plot_data = plot_data[, .(monthly_shelter_intake, date)]
+
+
+# Shelter intake time series 
+ggplot(plot_data, aes(x = date, y = monthly_shelter_intake)) + 
+  geom_line() + 
+  theme_bw() + 
+  labs(title = "Monthly shelter intake", subtitle = "Data available from January 2019 - December 2020",
+       x = "Date", y = "Monthly shelter intake")
+
+ggsave("../pngs/shelter_intake_ts.png")
+
+# Shelter intake, only for months that overlap with case data 
+ggplot(plot_data[date >= "2020-02-01" & date <= "2020-12-01"], aes(x = date, y = monthly_shelter_intake)) + 
+  geom_line() + 
+  theme_bw() + 
+  labs(title = "Monthly shelter intake", subtitle = "Data available from January 2019 - December 2020",
+       x = "Date", y = "Monthly shelter intake")
+
+# Regression with COVID-19 cases and monthly shelter intake 
+cases = fread('confirmed_cases.csv')
+cases$date <- as.Date(cases$date, "%m/%d/%y")
+
+plot_data = merge(plot_data, cases, by = 'date')
+
+model = lm(monthly_shelter_intake ~ confirmed_cases, data = plot_data)
+summary(model) 
+
+stargazer(model, type = "html", out = "../pngs/model_fit_shelter_intake.html")
+
+# Live outcomes 
+live_outcomes = fread('monthly_shelter_live_outcomes.csv')
+
+plot_data = copy(live_outcomes) 
+plot_data[, month:=tstrsplit(month, " ", keep = 1)]
+plot_data[, date:=paste0(month, " 01, ", year)]
+
+plot_data$date <- as.Date(plot_data$date, format = "%b %d, %Y")
+plot_data = plot_data[, .(monthly_live_outcomes, date)]
+
+# Live outcomes TS
+ggplot(plot_data, aes(x = date, y = monthly_live_outcomes)) + 
+  geom_line() + 
+  theme_bw() + 
+  labs(title = "Monthly live outcomes", subtitle = "Data available from February 2020 - December 2020",
+       x = "Date", y = "Monthly live outcomes")
+
+ggsave("../pngs/shelter_intake_ts.png")
